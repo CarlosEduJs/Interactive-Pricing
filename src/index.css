@@ -11,3 +11,6 @@
   font-family: "Manrope", sans-serif;
 }
 
+.transition-transform {
+  transition: transform 0.2s ease-in-out;
+}

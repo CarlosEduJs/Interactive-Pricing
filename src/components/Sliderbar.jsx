@@ -1,25 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import sliderIcon from "../assets/icon-slider.svg";
-
 import { pageViewRules } from "../PageviewsRules";
 
 function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
   const rules = pageViewRules();
-  const steps = rules.map((_, index) => (index * 100) / (rules.length - 1));
-
-  
+  const steps = useMemo(
+    () => rules.map((_, index) => (index * 100) / (rules.length - 1)),
+    [rules]
+  );
   const [isDragging, setIsDragging] = useState(false);
 
   const updateValues = (val) => {
-    const closestIndex = steps.reduce((prevIndex, currStep, currIndex) => {
-      return Math.abs(currStep - val) < Math.abs(steps[prevIndex] - val)
+    const closestIndex = steps.reduce((prevIndex, currStep, currIndex) =>
+      Math.abs(currStep - val) < Math.abs(steps[prevIndex] - val)
         ? currIndex
-        : prevIndex;
-    }, 0);
+        : prevIndex
+    );
 
     const { pageViews, pricePerMonth } = rules[closestIndex];
     const adjustedPrice =
-      billingType === "yearly" ? (pricePerMonth * 12) * 0.75 : pricePerMonth;
+      billingType === "yearly" ? pricePerMonth * 12 * 0.75 : pricePerMonth;
 
     setPageViews(pageViews);
     setPrice(adjustedPrice.toFixed(2));
@@ -35,9 +35,7 @@ function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
     updateValues(closestStep);
   };
 
-  const handleStart = () => {
-    setIsDragging(true);
-  };
+  const handleStart = () => setIsDragging(true);
 
   const handleMove = (e) => {
     if (!isDragging) return;
@@ -49,22 +47,49 @@ function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
     }
   };
 
-  const handleEnd = () => {
-    setIsDragging(false);
+  const handleEnd = () => setIsDragging(false);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowRight") {
+      const newValue = Math.min(100, value + (steps[1] - steps[0]));
+      setValue(newValue);
+      updateValues(newValue);
+    } else if (e.key === "ArrowLeft") {
+      const newValue = Math.max(0, value - (steps[1] - steps[0]));
+      setValue(newValue);
+      updateValues(newValue);
+    }
   };
 
   useEffect(() => {
-    updateValues(value)
-  }, [billingType])
+    const handleGlobalMouseMove = (e) => handleMove(e);
+    const handleGlobalMouseUp = () => handleEnd();
+
+    if (isDragging) {
+      window.addEventListener("mousemove", handleGlobalMouseMove);
+      window.addEventListener("mouseup", handleGlobalMouseUp);
+      window.addEventListener("touchmove", handleGlobalMouseMove);
+      window.addEventListener("touchend", handleGlobalMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+      window.removeEventListener("touchmove", handleGlobalMouseMove);
+      window.removeEventListener("touchend", handleGlobalMouseUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    updateValues(value);
+  }, [billingType]);
 
   return (
     <div
       id="slider-track"
-      className="relative h-12 flex items-center "
+      className="relative h-12 flex items-center"
       onMouseMove={handleMove}
-      onMouseUp={handleEnd}
       onTouchMove={handleMove}
-      onTouchEnd={handleEnd}
     >
       <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-2 bg-neutral-lightGrayishBlueEmpty rounded-full" />
 
@@ -74,7 +99,7 @@ function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
       />
 
       <div
-        className="absolute z-10 focus:outline-none"
+        className="absolute z-10 focus:outline-none transition-transform"
         style={{
           left: `calc(${value}% - 12px)`,
           top: "50%",
@@ -86,6 +111,7 @@ function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
         aria-valuemax={100}
         aria-valuenow={value}
         aria-label="Slider de Pageviews"
+        onKeyDown={handleKeyDown}
         onMouseDown={handleStart}
         onTouchStart={handleStart}
       >
