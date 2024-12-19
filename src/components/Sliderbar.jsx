@@ -19,7 +19,7 @@ function Slider({ setPrice, setPageViews, billingType, value, setValue }) {
 
     const { pageViews, pricePerMonth } = rules[closestIndex];
     const adjustedPrice =
-      billingType === "yearly" ? pricePerMonth * 0.75 : pricePerMonth;
+      billingType === "yearly" ? (pricePerMonth * 12) * 0.75 : pricePerMonth;
 
     setPageViews(pageViews);
     setPrice(adjustedPrice.toFixed(2));
